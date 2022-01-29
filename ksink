@@ -1,0 +1,68 @@
+#!/usr/bin/python
+
+# List audo streams (ID is the first number)
+#pactl list short sink-inputs
+
+# List sinks (audio output devices)
+#pactl list short sinks
+
+# Move audio stream 7 to sink 1
+#pactl move-sink-input 7 1
+import subprocess
+import sys
+
+# Execute a command and return the output as a string
+def cmd(command:str) -> str:
+		bashCmd = command.split(" ") 
+		process = subprocess.Popen(bashCmd, stdout=subprocess.PIPE)
+		output, error = process.communicate()
+		return output.decode("utf-8")
+
+# Get all source ids as a list of strings
+def get_source_ids():
+	sources = cmd("pactl list short sink-inputs")
+	source_list = sources.split("\n")
+	source_ids = []
+
+	for s in source_list:
+		source_ids.append(s.split("\t")[0])
+	return source_ids
+
+# Get all sink ids as a list of strings
+def get_sink_ids():
+    sinks = cmd("pactl list short sinks")
+    sink_list = sinks.split("\n")
+    sink_ids = []
+
+    for s in sink_list:
+        sink_ids.append(s.split("\t")[0])
+    return sink_ids
+
+# Get data from pulse
+sinks = get_sink_ids()
+sources = get_source_ids()
+
+# Simple arg parse
+if(len(sys.argv) < 2):
+    print("Error: Must provide a sink ID")
+    print(f"Sink IDs: {sinks}\n")
+    print(f"{cmd('pactl list short sinks')}")
+    exit()
+selected_sink = sys.argv[1]
+
+# Make sure the provided sink exists 
+if(selected_sink not in sinks):
+    print("Error: You must select a valid sink")
+    print(f"Sink IDs: {sinks}\n")
+    print(f"{cmd('pactl list short sinks')}")
+    exit()
+
+# Move over all the sources to the selected sink 
+for source in sources:
+    if(source != ""):
+        cmd(f"pactl move-sink-input {source} {selected_sink}")
+
+# Set default sink 
+cmd(f"pactl set-default-sink {selected_sink}")
+
+   
